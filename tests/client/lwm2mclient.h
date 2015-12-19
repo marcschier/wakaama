@@ -98,6 +98,9 @@ void handle_value_changed(lwm2m_context_t* lwm2mH, lwm2m_uri_t* uri, const char 
  */
 void init_value_change(lwm2m_context_t * lwm2m);
 void system_reboot(void);
+#ifdef LWM2M_EMBEDDED_MODE
+void system_setValueChangedHandler(lwm2m_context_t * lwm2m, void* p);
+#endif
 
 /*
  * object_security.c

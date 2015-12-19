@@ -52,7 +52,6 @@
 #include <stdio.h>
 #include <float.h>
 
-
 int lwm2m_PlainTextToInt64(uint8_t * buffer,
                            int length,
                            int64_t * dataP)

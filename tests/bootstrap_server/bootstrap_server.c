@@ -20,15 +20,24 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#ifndef _WIN32
+#include <unistd.h>
 #include <sys/select.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+typedef USHORT in_port_t;
+#include <getopt.h>
+#endif
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <signal.h>
@@ -278,7 +287,6 @@ static int prv_bootstrap_callback(void * sessionH,
                                   void * userData)
 {
     internal_data_t * dataP = (internal_data_t *)userData;
-    uint8_t result;
     endpoint_t * endP;
 
     switch (status)
@@ -316,7 +324,7 @@ static int prv_bootstrap_callback(void * sessionH,
 
         endP->cmdList = endInfoP->commandList;
         endP->handle = sessionH;
-        endP->name = strdup(name);
+        endP->name = lwm2m_strdup(name);
         endP->status = CMD_STATUS_NEW;
         endP->next = dataP->endpointList;
         dataP->endpointList = endP;
@@ -467,12 +475,13 @@ int main(int argc, char *argv[])
 
         FD_ZERO(&readfds);
         FD_SET(sock, &readfds);
+#ifndef _WIN32
         FD_SET(STDIN_FILENO, &readfds);
-
+#endif
         tv.tv_sec = 60;
         tv.tv_usec = 0;
 
-        result = lwm2m_step(data.lwm2mH, &(tv.tv_sec));
+        result = lwm2m_step(data.lwm2mH, (time_t*)&(tv.tv_sec));
         if (result != 0)
         {
             fprintf(stderr, "lwm2m_step() failed: 0x%X\r\n", result);
@@ -545,6 +554,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
+#ifndef _WIN32
             // command line input
             else if (FD_ISSET(STDIN_FILENO, &readfds))
             {
@@ -565,6 +575,7 @@ int main(int argc, char *argv[])
                     fprintf(stdout, "\r\n");
                 }
             }
+#endif
             // Do operations on endpoints
             prv_endpoint_clean(&data);
 
@@ -600,7 +611,11 @@ int main(int argc, char *argv[])
 
         prv_endpoint_free(endP);
     }
+#ifndef _WIN32
     close(sock);
+#else
+    closesocket(sock);
+#endif
     connection_free(connList);
 
     return 0;

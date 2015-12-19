@@ -61,16 +61,26 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
+#ifndef _WIN32
+#include <unistd.h>
 #include <sys/select.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+typedef USHORT in_port_t;
+
+#include <getopt.h>
+#endif
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <signal.h>
 
@@ -836,6 +846,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (0 != connection_init())
+    {
+        fprintf(stderr, "Failed to initialize connection: %d %s\r\n", errno, strerror(errno));
+        return -1;
+    }
+
     /*
      *This call an internal function that create an IPV6 socket on the port 5683.
      */
@@ -1044,7 +1060,9 @@ int main(int argc, char *argv[])
 
         FD_ZERO(&readfds);
         FD_SET(data.sock, &readfds);
+#ifndef _WIN32
         FD_SET(STDIN_FILENO, &readfds);
+#endif
 
         /*
          * This function does two things:
@@ -1052,7 +1070,7 @@ int main(int argc, char *argv[])
          *  - Secondly it adjusts the timeout value (default 60s) depending on the state of the transaction
          *    (eg. retransmission) and the time between the next operation
          */
-        result = lwm2m_step(lwm2mH, &(tv.tv_sec));
+        result = lwm2m_step(lwm2mH, (time_t*)&(tv.tv_sec));
         if (result != 0)
         {
             fprintf(stderr, "lwm2m_step() failed: 0x%X\r\n", result);
@@ -1139,6 +1157,7 @@ int main(int argc, char *argv[])
                 }
             }
 
+#ifndef _WIN32
             /*
              * If the event happened on the SDTIN
              */
@@ -1164,6 +1183,7 @@ int main(int argc, char *argv[])
                     fprintf(stdout, "\r\n");
                 }
             }
+#endif
         }
     }
 
@@ -1177,8 +1197,13 @@ int main(int argc, char *argv[])
 #endif
         lwm2m_close(lwm2mH);
     }
+#ifndef _WIN32
     close(data.sock);
+#else
+    closesocket(data.sock);
+#endif
     connection_free(data.connList);
+    connection_deinit();
 
     free_security_object(objArray[0]);
     free_server_object(objArray[1]);

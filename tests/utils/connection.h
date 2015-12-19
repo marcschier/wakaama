@@ -19,12 +19,22 @@
 #define CONNECTION_H_
 
 #include <stdio.h>
+#include <stdint.h>
+#include <ctype.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#else
 #include <unistd.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <sys/socket.h>
+#endif
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #define LWM2M_STANDARD_PORT_STR "5683"
 #define LWM2M_STANDARD_PORT      5683
@@ -38,6 +48,9 @@ typedef struct _connection_t
 } connection_t;
 
 int create_socket(const char * portStr);
+
+int connection_init(void);
+void connection_deinit(void);
 
 connection_t * connection_find(connection_t * connList, struct sockaddr_storage * addr, size_t addrLen);
 connection_t * connection_new_incoming(connection_t * connList, int sock, struct sockaddr * addr, size_t addrLen);

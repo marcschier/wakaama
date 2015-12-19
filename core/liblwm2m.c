@@ -148,8 +148,6 @@ void delete_transaction_list(lwm2m_context_t * context)
 void lwm2m_close(lwm2m_context_t * contextP)
 {
 #ifdef LWM2M_CLIENT_MODE
-    int i;
-
     lwm2m_deregister(contextP);
     delete_server_list(contextP);
     delete_bootstrap_server_list(contextP);

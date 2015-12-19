@@ -184,6 +184,7 @@ void reset_bootstrap_timer(lwm2m_context_t * context);
 void update_bootstrap_state(lwm2m_context_t * contextP, uint32_t currentTime, time_t* timeoutP);
 void delete_bootstrap_server_list(lwm2m_context_t * contextP);
 uint8_t handle_bootstrap_request(lwm2m_context_t * contextP, lwm2m_uri_t * uriP, void * fromSessionH, coap_packet_t * message, coap_packet_t * response);
+coap_status_t handle_bootstrap_finish(lwm2m_context_t * context, void * fromSessionH);
 
 // defined in liblwm2m.c
 void delete_transaction_list(lwm2m_context_t * context);

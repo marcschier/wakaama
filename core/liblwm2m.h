@@ -58,9 +58,14 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stddef.h>
 #include <stdbool.h>
+#ifdef _WIN32
+#include <time.h>
+#else
 #include <sys/time.h>
+#endif
 
 #ifdef LWM2M_SERVER_MODE
 #ifndef LWM2M_SUPPORT_JSON
@@ -77,11 +82,15 @@ extern "C" {
 #define lwm2m_strdup strdup
 #endif
 #define lwm2m_strncmp strncmp
+#define lwm2m_getline getline
+#define lwm2m_strcasecmp strcasecmp
 #else
 void * lwm2m_malloc(size_t s);
 void   lwm2m_free(void * p);
 char * lwm2m_strdup(const char * str);
 int    lwm2m_strncmp(const char * s1, const char * s2, size_t n);
+int    lwm2m_getline(char** line, size_t* length, FILE* f);
+int    lwm2m_strcasecmp(const char * s1, const char * s2);
 #endif
 // This function must return the number of seconds elapsed since origin.
 // The origin (Epoch, system boot, etc...) does not matter as this

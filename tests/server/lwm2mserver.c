@@ -55,19 +55,28 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include <signal.h>
 #include <inttypes.h>
+
+#ifndef _WIN32
+#include <unistd.h>
+#include <sys/select.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+typedef USHORT in_port_t;
+#endif
+#include <sys/types.h>
 
 #include "commandline.h"
 #include "connection.h"
@@ -640,6 +649,13 @@ int main(int argc, char *argv[])
             COMMAND_END_LIST
     };
 
+    
+    if (0 != connection_init())
+    {
+        fprintf(stderr, "Error initializing connection: %d\r\n", errno);
+        return -1;
+    }
+
     sock = create_socket(LWM2M_STANDARD_PORT_STR);
     if (sock < 0)
     {
@@ -668,12 +684,13 @@ int main(int argc, char *argv[])
     {
         FD_ZERO(&readfds);
         FD_SET(sock, &readfds);
-        FD_SET(STDIN_FILENO, &readfds);
-
+#ifndef _WIN32
+        FD_SET(_fileno(stdin), &readfds);
+#endif
         tv.tv_sec = 60;
         tv.tv_usec = 0;
 
-        result = lwm2m_step(lwm2mH, &(tv.tv_sec));
+        result = lwm2m_step(lwm2mH, (time_t*)&(tv.tv_sec));
         if (result != 0)
         {
             fprintf(stderr, "lwm2m_step() failed: 0x%X\r\n", result);
@@ -744,6 +761,8 @@ int main(int argc, char *argv[])
                     }
                 }
             }
+
+#ifndef _WIN32
             else if (FD_ISSET(STDIN_FILENO, &readfds))
             {
                 numBytes = read(STDIN_FILENO, buffer, MAX_PACKET_SIZE - 1);
@@ -764,12 +783,18 @@ int main(int argc, char *argv[])
                     fprintf(stdout, "\r\n");
                 }
             }
+#endif
         }
     }
 
     lwm2m_close(lwm2mH);
+#ifndef _WIN32
     close(sock);
+#else
+    closesocket(sock);
+#endif
     connection_free(connList);
+    connection_deinit();
 
 #ifdef MEMORY_TRACE
     if (g_quit == 1)

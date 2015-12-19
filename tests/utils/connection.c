@@ -21,6 +21,22 @@
 #include <ctype.h>
 #include "connection.h"
 
+int connection_init(void)
+{
+#ifdef _WIN32
+    WSADATA wsa;
+    return WSAStartup(0x202, &wsa);
+#endif
+}
+
+void connection_deinit(void)
+{
+#ifdef _WIN32
+    WSACleanup();
+#endif
+}
+
+
 int create_socket(const char * portStr)
 {
     int s = -1;
@@ -33,7 +49,11 @@ int create_socket(const char * portStr)
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
+#ifndef _WIN32
     if (0 != getaddrinfo(NULL, portStr, &hints, &res))
+#else
+    if (0 != getaddrinfo("localhost", portStr, &hints, &res))
+#endif
     {
         return -1;
     }
@@ -45,7 +65,11 @@ int create_socket(const char * portStr)
         {
             if (-1 == bind(s, p->ai_addr, p->ai_addrlen))
             {
+#ifndef _WIN32
                 close(s);
+#else
+                closesocket(s);
+#endif
                 s = -1;
             }
         }
@@ -104,7 +128,7 @@ connection_t * connection_create(connection_t * connList,
     struct addrinfo *servinfo = NULL;
     struct addrinfo *p;
     int s;
-    struct sockaddr *sa;
+    struct sockaddr *sa = NULL;
     socklen_t sl;
     connection_t * connP = NULL;
 
@@ -125,7 +149,11 @@ connection_t * connection_create(connection_t * connList,
             sl = p->ai_addrlen;
             if (-1 == connect(s, p->ai_addr, p->ai_addrlen))
             {
+#ifndef _WIN32
                 close(s);
+#else
+                closesocket(s);
+#endif
                 s = -1;
             }
         }
@@ -133,7 +161,11 @@ connection_t * connection_create(connection_t * connList,
     if (s >= 0)
     {
         connP = connection_new_incoming(connList, sock, sa, sl);
+#ifndef _WIN32
         close(s);
+#else
+        closesocket(s);
+#endif
     }
     if (NULL != servinfo) {
         free(servinfo);

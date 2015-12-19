@@ -19,12 +19,19 @@
 #define DTLS_CONNECTION_H_
 
 #include <stdio.h>
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#else
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#endif
 #include <stdint.h>
 #include <stdbool.h>
 

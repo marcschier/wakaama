@@ -16,6 +16,8 @@
  *******************************************************************************/
 
 #include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 
 #include "bootstrap_info.h"
@@ -46,7 +48,7 @@ static int prv_find_next_section(FILE * fd,
     length = 0;
     found = 0;
     while (found == 0
-        && getline(&line, &length, fd) != -1)
+        && lwm2m_getline(&line, &length, fd) != -1)
     {
         if (line[0] == '[')
         {
@@ -59,7 +61,7 @@ static int prv_find_next_section(FILE * fd,
             if (i < length)
             {
                 line[i] = 0;
-                if (strcasecmp(line + 1, tag) == 0)
+                if (lwm2m_strcasecmp(line + 1, tag) == 0)
                 {
                     found = 1;
                 }
@@ -81,7 +83,7 @@ static int prv_read_key_value(FILE * fd,
 {
     char * line;
     fpos_t prevPos;
-    ssize_t res;
+    size_t res;
     size_t length;
     size_t start;
     size_t middle;
@@ -92,7 +94,7 @@ static int prv_read_key_value(FILE * fd,
 
     line = NULL;
     if (fgetpos(fd, &prevPos) != 0) return -1;
-    while ((res = getline(&line, &length, fd)) != -1)
+    while ((res = lwm2m_getline(&line, &length, fd)) != -1)
     {
         length = strlen(line);
 
@@ -143,7 +145,7 @@ static int prv_read_key_value(FILE * fd,
     end += 1;
 
     line[middle] = 0;
-    *keyP = strdup(line + start);
+    *keyP = lwm2m_strdup(line + start);
     if (*keyP == NULL)
     {
         lwm2m_free(line);
@@ -153,7 +155,7 @@ static int prv_read_key_value(FILE * fd,
     middle +=1 ;
     while (middle < end && isspace(line[middle]&0xff)) middle++;
     line[end] = 0;
-    *valueP = strdup(line + middle);
+    *valueP = lwm2m_strdup(line + middle);
     if (*valueP == NULL)
     {
         lwm2m_free(*keyP);
@@ -241,7 +243,7 @@ static read_server_t * prv_read_next_server(FILE * fd)
 
     while((res = prv_read_key_value(fd, &key, &value)) == 1)
     {
-        if (strcasecmp(key, "id") == 0)
+        if (lwm2m_strcasecmp(key, "id") == 0)
         {
             int num;
 
@@ -250,24 +252,24 @@ static read_server_t * prv_read_next_server(FILE * fd)
             readSrvP->id = num;
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "uri") == 0)
+        else if (lwm2m_strcasecmp(key, "uri") == 0)
         {
             readSrvP->uri = value;
         }
-        else if (strcasecmp(key, "bootstrap") == 0)
+        else if (lwm2m_strcasecmp(key, "bootstrap") == 0)
         {
-            if (strcasecmp(value, "yes") == 0)
+            if (lwm2m_strcasecmp(value, "yes") == 0)
             {
                 readSrvP->isBootstrap = true;
             }
-            else if (strcasecmp(value, "no") == 0)
+            else if (lwm2m_strcasecmp(value, "no") == 0)
             {
                 readSrvP->isBootstrap = false;
             }
             else goto error;
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "lifetime") == 0)
+        else if (lwm2m_strcasecmp(key, "lifetime") == 0)
         {
             int num;
 
@@ -276,40 +278,40 @@ static read_server_t * prv_read_next_server(FILE * fd)
             readSrvP->lifetime = num;
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "security") == 0)
+        else if (lwm2m_strcasecmp(key, "security") == 0)
         {
-            if (strcasecmp(value, "nosec") == 0)
+            if (lwm2m_strcasecmp(value, "nosec") == 0)
             {
                 readSrvP->securityMode = LWM2M_SECURITY_MODE_NONE;
             }
-            else if (strcasecmp(value, "PSK") == 0)
+            else if (lwm2m_strcasecmp(value, "PSK") == 0)
             {
                 readSrvP->securityMode = LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
             }
-            else if (strcasecmp(value, "RPK") == 0)
+            else if (lwm2m_strcasecmp(value, "RPK") == 0)
             {
                 readSrvP->securityMode = LWM2M_SECURITY_MODE_RAW_PUBLIC_KEY;
             }
-            else if (strcasecmp(value, "certificate") == 0)
+            else if (lwm2m_strcasecmp(value, "certificate") == 0)
             {
                 readSrvP->securityMode = LWM2M_SECURITY_MODE_CERTIFICATE;
             }
             else goto error;
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "public") == 0)
+        else if (lwm2m_strcasecmp(key, "public") == 0)
         {
             readSrvP->publicKeyLen = prv_readSecurityKey(value, &(readSrvP->publicKey));
             if (readSrvP->publicKeyLen == 0) goto error;
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "server") == 0)
+        else if (lwm2m_strcasecmp(key, "server") == 0)
         {
             readSrvP->serverKeyLen = prv_readSecurityKey(value, &(readSrvP->serverKey));
             if (readSrvP->serverKeyLen == 0) goto error;
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "secret") == 0)
+        else if (lwm2m_strcasecmp(key, "secret") == 0)
         {
             readSrvP->secretKeyLen = prv_readSecurityKey(value, &(readSrvP->secretKey));
             if (readSrvP->secretKeyLen == 0) goto error;
@@ -505,11 +507,11 @@ static bs_endpoint_info_t * prv_read_next_endpoint(FILE * fd)
 
     while((res = prv_read_key_value(fd, &key, &value)) == 1)
     {
-        if (strcasecmp(key, "Name") == 0)
+        if (lwm2m_strcasecmp(key, "Name") == 0)
         {
             endptP->name = value;
         }
-        else if (strcasecmp(key, "Delete") == 0)
+        else if (lwm2m_strcasecmp(key, "Delete") == 0)
         {
             lwm2m_uri_t uri;
 
@@ -538,7 +540,7 @@ static bs_endpoint_info_t * prv_read_next_endpoint(FILE * fd)
 
             lwm2m_free(value);
         }
-        else if (strcasecmp(key, "Server") == 0)
+        else if (lwm2m_strcasecmp(key, "Server") == 0)
         {
             int num;
 
@@ -640,7 +642,6 @@ bs_info_t *  bs_get_info(FILE * fd)
     bs_info_t * infoP;
     read_server_t * readSrvP;
     bs_endpoint_info_t * cltInfoP;
-    bs_command_t * cmdP;
 
     infoP = (bs_info_t *)lwm2m_malloc(sizeof(bs_info_t));
     if (infoP == NULL) return NULL;
