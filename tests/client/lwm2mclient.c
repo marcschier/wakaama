@@ -75,6 +75,7 @@
 #include <windows.h>
 #include <WinSock2.h>
 #include <ws2tcpip.h>
+#include <wstdinselect.h>
 typedef USHORT in_port_t;
 
 #include <getopt.h>
@@ -261,17 +262,17 @@ static uint8_t prv_buffer_send(void * sessionH,
 
     if (connP == NULL)
     {
-        fprintf(stderr, "#> failed sending %lu bytes, missing connection\r\n", length);
+        fprintf(stderr, "#> failed sending %lu bytes, missing connection\r\n", (unsigned long)length);
         return COAP_500_INTERNAL_SERVER_ERROR ;
     }
 
     if (-1 == connection_send(connP, buffer, length))
     {
-        fprintf(stderr, "#> failed sending %lu bytes\r\n", length);
+        fprintf(stderr, "#> failed sending %lu bytes\r\n", (unsigned long)length);
         return COAP_500_INTERNAL_SERVER_ERROR ;
     }
     conn_s_updateTxStatistic(objArray[7], (uint16_t)length, false);
-    fprintf(stderr, "#> sent %lu bytes\r\n", length);
+    fprintf(stderr, "#> sent %lu bytes\r\n", (unsigned long)length);
     return COAP_NO_ERROR;
 }
 
@@ -846,6 +847,10 @@ int main(int argc, char *argv[])
         }
     }
 
+#ifdef _WIN32
+    wstdinselect_init(40002);
+#endif
+
     if (0 != connection_init())
     {
         fprintf(stderr, "Failed to initialize connection: %d %s\r\n", errno, strerror(errno));
@@ -1060,9 +1065,7 @@ int main(int argc, char *argv[])
 
         FD_ZERO(&readfds);
         FD_SET(data.sock, &readfds);
-#ifndef _WIN32
         FD_SET(STDIN_FILENO, &readfds);
-#endif
 
         /*
          * This function does two things:
@@ -1157,7 +1160,6 @@ int main(int argc, char *argv[])
                 }
             }
 
-#ifndef _WIN32
             /*
              * If the event happened on the SDTIN
              */
@@ -1183,7 +1185,6 @@ int main(int argc, char *argv[])
                     fprintf(stdout, "\r\n");
                 }
             }
-#endif
         }
     }
 
@@ -1201,6 +1202,7 @@ int main(int argc, char *argv[])
     close(data.sock);
 #else
     closesocket(data.sock);
+    wstdinselect_deinit();
 #endif
     connection_free(data.connList);
     connection_deinit();

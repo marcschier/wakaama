@@ -74,6 +74,7 @@
 #include <windows.h>
 #include <WinSock2.h>
 #include <ws2tcpip.h>
+#include <wstdinselect.h>
 typedef USHORT in_port_t;
 #endif
 #include <sys/types.h>
@@ -649,7 +650,10 @@ int main(int argc, char *argv[])
             COMMAND_END_LIST
     };
 
-    
+#ifdef _WIN32
+    wstdinselect_init(40001);
+#endif
+
     if (0 != connection_init())
     {
         fprintf(stderr, "Error initializing connection: %d\r\n", errno);
@@ -684,9 +688,8 @@ int main(int argc, char *argv[])
     {
         FD_ZERO(&readfds);
         FD_SET(sock, &readfds);
-#ifndef _WIN32
-        FD_SET(_fileno(stdin), &readfds);
-#endif
+        FD_SET(STDIN_FILENO, &readfds);
+
         tv.tv_sec = 60;
         tv.tv_usec = 0;
 
@@ -762,7 +765,6 @@ int main(int argc, char *argv[])
                 }
             }
 
-#ifndef _WIN32
             else if (FD_ISSET(STDIN_FILENO, &readfds))
             {
                 numBytes = read(STDIN_FILENO, buffer, MAX_PACKET_SIZE - 1);
@@ -783,7 +785,6 @@ int main(int argc, char *argv[])
                     fprintf(stdout, "\r\n");
                 }
             }
-#endif
         }
     }
 
@@ -792,6 +793,7 @@ int main(int argc, char *argv[])
     close(sock);
 #else
     closesocket(sock);
+    wstdinselect_deinit();
 #endif
     connection_free(connList);
     connection_deinit();

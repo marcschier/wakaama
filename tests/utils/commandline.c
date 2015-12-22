@@ -270,7 +270,7 @@ void output_tlv(FILE * stream,
             double floatValue;
 
             print_indent(stream, indent+2);
-            fprintf(stream, "data (%ld bytes):\r\n", dataLen);
+            fprintf(stream, "data (%ld bytes):\r\n", (long)dataLen);
             output_buffer(stream, (uint8_t*)buffer + length + dataIndex, dataLen, indent+2);
 
             if (0 < lwm2m_opaqueToInt(buffer + length + dataIndex, dataLen, &intValue))

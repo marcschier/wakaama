@@ -168,7 +168,7 @@ connection_t * connection_create(connection_t * connList,
 #endif
     }
     if (NULL != servinfo) {
-        free(servinfo);
+        freeaddrinfo(servinfo);
     }
 
     return connP;
