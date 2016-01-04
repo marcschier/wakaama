@@ -212,7 +212,9 @@ int connection_send(connection_t *connP,
     while (offset != length)
     {
         nbSent = sendto(connP->sock, buffer + offset, length - offset, 0, (struct sockaddr *)&(connP->addr), connP->addrLen);
-        if (nbSent == -1) return -1;
+        if (nbSent == -1) {
+             return -1;
+        }
         offset += nbSent;
     }
     return 0;

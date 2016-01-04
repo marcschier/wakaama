@@ -728,10 +728,10 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
+                    connection_t * connP;
+#if 0
                     char s[INET6_ADDRSTRLEN];
                     in_port_t port;
-                    connection_t * connP;
-
 					s[0] = 0;
                     if (AF_INET == addr.ss_family)
                     {
@@ -747,6 +747,7 @@ int main(int argc, char *argv[])
                     }
 
                     fprintf(stderr, "%d bytes received from [%s]:%hu\r\n", numBytes, s, ntohs(port));
+#endif
                     output_buffer(stderr, buffer, numBytes, 0);
 
                     connP = connection_find(connList, &addr, addrLen);
