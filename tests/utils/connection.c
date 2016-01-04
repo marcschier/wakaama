@@ -40,6 +40,7 @@ void connection_deinit(void)
 int create_socket(const char * portStr)
 {
     int s = -1;
+    char hostname[NI_MAXHOST];
     struct addrinfo hints;
     struct addrinfo *res;
     struct addrinfo *p;
@@ -49,11 +50,8 @@ int create_socket(const char * portStr)
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
-#ifndef _WIN32
-    if (0 != getaddrinfo(NULL, portStr, &hints, &res))
-#else
-    if (0 != getaddrinfo("localhost", portStr, &hints, &res))
-#endif
+    gethostname(hostname, sizeof(hostname));
+    if (0 != getaddrinfo(hostname, portStr, &hints, &res))
     {
         return -1;
     }
